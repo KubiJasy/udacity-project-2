@@ -1,8 +1,8 @@
 import os
+import random
 from flask import Flask, request, abort, jsonify, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
-import random
 
 from models import setup_db, Question, Category
 
@@ -82,7 +82,7 @@ def create_app(test_config=None):
 
         categories = Category.query.all()
         categories = Category.format_list(categories)
-
+        # check that data was returned from the database query
         if len(paginated_questions) == 0 or len(categories) == 0:
             abort(404)
 
@@ -105,7 +105,7 @@ def create_app(test_config=None):
     def delete_question(question_id):
         try:
             question = Question.query.get(question_id)
-
+            # check that the question id exists in the database
             if question is None:
                 abort(404)
 
@@ -115,7 +115,7 @@ def create_app(test_config=None):
                 'success': True,
                 'deleted_question_id': question_id
             })
-        except:
+        except BaseException:
             abort(422)
 
     """
@@ -131,23 +131,29 @@ def create_app(test_config=None):
     @app.route('/questions', methods=['POST'])
     def add_question():
         data = request.get_json()
+        # check that a valid post request was made with the necessary payload
         if data is None:
             abort(400)
 
         try:
-            new_question = Question(question=data['question'], answer=data['answer'],
-                                    category=data['category'], difficulty=int(data['difficulty']))
+            new_question = Question(
+                question=data['question'],
+                answer=data['answer'],
+                category=data['category'],
+                difficulty=int(
+                    data['difficulty']))
 
             new_question.insert()
 
-            question = Question.query.with_entities(Question.id).filter_by(question=data['question']).first()
+            question = Question.query.with_entities(
+                Question.id).filter_by(question=data['question']).first()
             question_id = question[0]
 
             return jsonify({
                 'success': True,
                 'question_id': question_id
             })
-        except:
+        except BaseException:
             abort(422)
     """
     @TODO:
@@ -162,13 +168,14 @@ def create_app(test_config=None):
     @app.route('/questions/search', methods=['POST'])
     def search_questions():
         data = request.get_json()
+        # check that a valid post request was made with the necessary payload
         if data is None:
             abort(400)
         try:
             search_string = data['searchTerm'].lower()
             results = Question.query.filter(Question.question.ilike(
                 f'%{search_string}%')).order_by(Question.id).all()
-
+            # check that data was returned from the database query
             if len(results) == 0:
                 abort(404)
 
@@ -202,7 +209,7 @@ def create_app(test_config=None):
         categories = Category.format_list(categories)
 
         current_category = Category.query.filter_by(id=category).first().type
-
+        # check that data was returned from the database query
         if len(questions) == 0 or len(categories) == 0:
             abort(404)
 
@@ -229,6 +236,7 @@ def create_app(test_config=None):
     @app.route('/quizzes', methods=['POST'])
     def play_quiz():
         data = request.get_json()
+        # check that a valid post request was made with the necessary payload
         if data is None:
             abort(400)
 
@@ -236,16 +244,20 @@ def create_app(test_config=None):
             current_category = data['quiz_category']['id']
             previous_questions = data['previous_questions']
 
+            # if statement for when a category has been selected
+
             if current_category != 0:
                 question_ids = [id[0] for id in Question.query.with_entities(
                     Question.id).filter_by(category=current_category).all()]
                 unplayed_question_ids = [
                     id for id in question_ids if id not in previous_questions]
+                #  check if all the questions have been answered
                 if not unplayed_question_ids:
                     return jsonify({
                         'success': True,
                         'question': None
                     })
+                # return next unplayed question
                 else:
                     next_question_id = unplayed_question_ids[random.randrange(
                         0, len(unplayed_question_ids))]
@@ -262,16 +274,20 @@ def create_app(test_config=None):
                             'category': next_question['category']
                         }
                     })
+            # else condition for when all categories has been selected
             else:
                 question_ids = [
-                    id[0] for id in Question.query.with_entities(Question.id).all()]
+                    id[0] for id in Question.query.with_entities(
+                        Question.id).all()]
                 unplayed_question_ids = [
                     id for id in question_ids if id not in previous_questions]
+                #  check if all the questions have been answered
                 if not unplayed_question_ids:
                     return jsonify({
                         'success': True,
                         'question': None
                     })
+                # return next unplayed question
                 else:
                     next_question_id = unplayed_question_ids[random.randrange(
                         0, len(unplayed_question_ids))]
@@ -297,6 +313,7 @@ def create_app(test_config=None):
     including 404 and 422.
     """
 
+    # define error handlers for various errors
     @app.errorhandler(404)
     def resource_not_found(error):
         return (
@@ -305,28 +322,34 @@ def create_app(test_config=None):
                 "error": 404,
                 "message": "resource not found"
             }),
-            404,
+            404
         )
 
     @app.errorhandler(422)
     def unprocessable(error):
         return (
-            jsonify({"success": False, "error": 422,
-                    "message": "unprocessable"}),
+            jsonify({"success": False, 
+                     "error": 422,
+                     "message": "unprocessable"}),
             422,
         )
 
     @app.errorhandler(400)
     def bad_request(error):
-        return jsonify({"success": False, "error": 400, "message": "bad request"}), 400
+        return jsonify(({"success": False,
+                        "error": 400,
+                       "message": "bad request"
+                       }), 
+                       400
+                    )
 
     @app.errorhandler(405)
     def not_found(error):
-        return (
-            jsonify({"success": False, "error": 405,
-                    "message": "method not allowed"}),
-            405,
-        )
+        return (jsonify({"success": False, 
+                         "error": 405,
+                         "message": "method not allowed"}),
+                          405, 
+                )
 
     @app.errorhandler(500)
     def server_error(error):

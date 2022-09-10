@@ -65,9 +65,9 @@ class Question(db.Model):
             'category': self.category,
             'difficulty': self.difficulty
         }
-    
+
     def format_list(lst):
-        return [list_item.format() for list_item in lst ]
+        return [list_item.format() for list_item in lst]
 
 
 """
@@ -92,5 +92,5 @@ class Category(db.Model):
         }
 
     def format_list(lst):
-        return {list_item.format()['id'] : list_item.format()['type'] for list_item in lst}
-
+        return {list_item.format()['id']: list_item.format()[
+            'type'] for list_item in lst}
