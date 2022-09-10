@@ -146,7 +146,7 @@ def create_app(test_config=None):
             new_question.insert()
 
             question = Question.query.with_entities(
-                Question.id).filter_by(question=data['question']).first()
+                Question.id).filter_by(question=data['question']).order_by(Question.id.desc()).first()
             question_id = question[0]
 
             return jsonify({
@@ -344,7 +344,7 @@ def create_app(test_config=None):
                     )
 
     @app.errorhandler(405)
-    def not_found(error):
+    def method_not_allowed(error):
         return (jsonify({"success": False, 
                          "error": 405,
                          "message": "method not allowed"}),
